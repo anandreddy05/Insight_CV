@@ -1,4 +1,3 @@
-// context/AuthContext.js
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -8,87 +7,108 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [authState, setAuthState] = useState({
     isAuthenticated: false,
-    userRole: localStorage.getItem('userRole') || null,
+    userRole: null,
     userData: null,
-    token: localStorage.getItem('authToken') || null,
-    loading: true
+    token: null,
+    loading: true, // Initial loading state
   });
 
   const navigate = useNavigate();
 
+  // Verify token validity with the backend
   const verifyToken = async (token) => {
+    if (!token) return false;
+
     try {
       const response = await axios.get('/auth/verify-token', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
-      // Ensure the backend returns user.role
-      if (!response.data.user?.role) {
-        throw new Error('Role not provided in token verification');
+
+      if (!response.data?.user?.role) {
+        throw new Error('Invalid token response');
       }
-      
-      localStorage.setItem('userRole', response.data.user.role);
-      
+
+      // Update auth state if token is valid
       setAuthState({
         isAuthenticated: true,
         userRole: response.data.user.role,
         userData: response.data.user,
         token,
-        loading: false
+        loading: false,
       });
-      
+
       return true;
     } catch (error) {
-      logout();
+      console.error('Token verification failed:', error);
+      logout(); // Clear invalid token
       return false;
     }
   };
 
+  // Initialize auth state on app load
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      verifyToken(token);
-    } else {
-      setAuthState(prev => ({ ...prev, loading: false }));
-    }
+    const initializeAuth = async () => {
+      const storedToken = localStorage.getItem('authToken');
+
+      if (storedToken) {
+        const isValid = await verifyToken(storedToken);
+        if (!isValid) {
+          localStorage.removeItem('authToken'); // Clear invalid token
+        }
+      } else {
+        setAuthState((prev) => ({ ...prev, loading: false }));
+      }
+    };
+
+    initializeAuth();
   }, []);
 
+  // Login function
   const login = async (credentials) => {
     try {
+      setAuthState((prev) => ({ ...prev, loading: true }));
+
       const response = await axios.post('/auth/login', credentials);
       const { access_token, user } = response.data;
-      
-      if (!user?.role) {
-        throw new Error('Role not provided in login response');
+
+      if (!access_token || !user?.role) {
+        throw new Error('Invalid login response');
       }
-      
+
       localStorage.setItem('authToken', access_token);
-      localStorage.setItem('userRole', user.role);
-      
       await verifyToken(access_token);
-      
+
       return true;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Login failed:', error);
+      logout();
       throw error;
     }
   };
 
+  // Logout function
   const logout = () => {
     localStorage.removeItem('authToken');
-    localStorage.removeItem('userRole');
     setAuthState({
       isAuthenticated: false,
       userRole: null,
       userData: null,
       token: null,
-      loading: false
+      loading: false,
     });
     navigate('/login');
   };
 
+  // Provide auth state and methods to children
   return (
-    <AuthContext.Provider value={{ ...authState, login, logout, verifyToken }}>
+    <AuthContext.Provider
+      value={{
+        ...authState,
+        login,
+        logout,
+        verifyToken,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

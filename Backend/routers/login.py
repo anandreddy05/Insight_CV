@@ -34,6 +34,16 @@ class UserLogin(BaseModel):
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
+@router.get("/auth/verify-token")
+async def verify_token(current_user: User = Depends(get_current_user)):
+    return {
+        "user": {
+            "id": current_user.id,
+            "email": current_user.email,
+            "role": current_user.role.value
+        }
+    }
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(db: db_dependency, user_data: UserCreate):
     existing_user = db.query(User).filter(User.email == user_data.email).first()

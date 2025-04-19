@@ -1,32 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const RecruiterDashboard = () => {
-  const { isAuthenticated, userRole, token, logout, verifyToken } = useAuth();
+  // Get auth values from useAuth()
+  const { logout } = useAuth();
   const [jobDescription, setJobDescription] = useState('');
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [authChecked, setAuthChecked] = useState(false);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      if (token) {
-        await verifyToken(token);
-      }
-      setAuthChecked(true);
-    };
-    checkAuth();
-  }, [token, verifyToken]);
+  const navigate = useNavigate();
 
   const handleSearch = async () => {
-    if (!isAuthenticated || userRole !== 'recruiter') {
-      setError('Recruiter privileges required. Please login as recruiter.');
-      return;
-    }
-
     if (!jobDescription.trim()) {
       setError('Please enter a job description');
       return;
@@ -37,20 +24,19 @@ const RecruiterDashboard = () => {
     setSuccess('');
     
     try {
+      const token = localStorage.getItem('authToken'); // Get token from localStorage
+      if (!token) throw new Error('No authentication token found');
+      
       const response = await axios.post(
-        '/recruiter/match-best-resumes',
+        'http://localhost:8000/recruiter/match-best-resumes',
         { job_description: jobDescription, threshold: 70 },
         { 
           headers: { 
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,  // Use token from localStorage
             'Content-Type': 'application/json'
-          } 
+          }
         }
       );
-      
-      if (response.data?.error) {
-        throw new Error(response.data.error);
-      }
       
       setResults(response.data);
       setSuccess('Successfully found matching resumes!');
@@ -58,41 +44,36 @@ const RecruiterDashboard = () => {
       console.error('Search error:', err);
       if (err.response?.status === 401) {
         logout();
-        setError('Session expired. Please login again.');
-      } else if (err.response?.data?.detail) {
-        setError(err.response.data.detail);
+        navigate('/login');
+      } else if (err.response?.status === 403) {
+        setError('Access denied: Recruiter privileges required');
       } else {
-        setError(err.message || 'Failed to search resumes');
+        setError(err.response?.data?.message || 'Failed to search resumes');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  if (!authChecked) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
-
-  if (!isAuthenticated || userRole !== 'recruiter') {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md text-center max-w-md">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h2>
-          <p className="mb-6">You must be logged in as a recruiter to access this dashboard.</p>
-          <button
-            onClick={() => window.location.href = '/login'}
-            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Go to Login
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Enhanced logout function
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <h1 className="text-2xl font-bold mb-6">Recruiter Dashboard</h1>
+      <header className="bg-white shadow mb-6 rounded-lg">
+        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+          <h1 className="text-3xl font-bold text-gray-900">Recruiter Dashboard</h1>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
+      </header>
       
       {error && (
         <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -111,7 +92,7 @@ const RecruiterDashboard = () => {
           value={jobDescription}
           onChange={(e) => {
             setJobDescription(e.target.value);
-            setError(null);
+            setError('');
             setSuccess('');
           }}
           placeholder="Enter job description (skills, experience required, etc.)"
