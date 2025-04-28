@@ -39,7 +39,7 @@ Frontend: Developed a simple UI with React.
 Backend: Built using Python, incorporating librarues like langchian, chromadb.
 
 ## Project Structure
-
+```bash
 Insight_CV/
 ├── Backend/
 │   ├── app.py
@@ -51,7 +51,7 @@ Insight_CV/
 │   └── ...
 ├── README.md
 └── ...
-
+```
 ## Installation
 ```bash
 git clone https://github.com/anandreddy05/Insight_CV.git
