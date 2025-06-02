@@ -60,7 +60,14 @@ cd Insight_CV
 
 ## 📸 Sample Output
 
-![Job Seekers Sample Output](https://github.com/anandreddy05/Insight_CV/blob/main/Frontend/SampleOutput/JobSeekers.png?raw=true)
+![Job Dashboard Seekers Sample Output](https://github.com/anandreddy05/Insight_CV/blob/main/Frontend/SampleOutput/JobSeekers.png?raw=true)
+
+![Admin Dashboard Seekers Sample Output](https://github.com/anandreddy05/Insight_CV/blob/main/Frontend/SampleOutput/Admin_Dashboard.png?raw=true)
+
+![Recruiter Sample Output](https://github.com/anandreddy05/Insight_CV/blob/main/Frontend/SampleOutput/Recruiter_Dashboard.png?raw=true)
+
+
+
 
 For more detailed information on the backend implementation, please refer to the [Backend Documentation](https://github.com/anandreddy05/Insight_CV/blob/main/Backend/README.md).
 
